@@ -1,0 +1,43 @@
+[project]
+name = "nft-ft-staking"
+authors = []
+description = ""
+telemetry = false
+requirements = []
+boot_contracts = ["pox", "costs-v2", "bns"]
+
+[project.cache_location]
+path = ".requirements"
+[contracts.commission-trait]
+path = "contracts/commission-trait.clar"
+
+[contracts.ft]
+path = "contracts/ft.clar"
+
+[contracts.nft-a]
+path = "contracts/nft-a.clar"
+
+[contracts.nft-b]
+path = "contracts/nft-b.clar"
+
+[contracts.sip-09]
+path = "contracts/sip-09.clar"
+
+[contracts.sip-10]
+path = "contracts/sip-10.clar"
+
+[contracts.staking]
+path = "contracts/staking.clar"
+
+[repl]
+costs_version = 2
+parser_version = 2
+
+[repl.analysis]
+passes = ["check_checker"]
+
+[repl.analysis.check_checker]
+strict = false
+trusted_sender = false
+trusted_caller = false
+callee_filter = false
