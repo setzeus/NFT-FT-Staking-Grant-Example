@@ -1,4 +1,4 @@
-;; Staking
+;; Staking (monolith)
 ;; Stacks Grant example contract for NFT(s) -> FT Staking SIP
 ;; This contract is in charge of handling all staking within this example collection ecosystem.
 ;; Written by Setzeus/StrataLabs
@@ -517,7 +517,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;; Admin Functions ;;;;;;
+;;;;;; Admin Functions ;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

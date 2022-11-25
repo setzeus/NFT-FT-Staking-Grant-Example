@@ -1,7 +1,6 @@
-;; NFT - A
+;; NFT - B
 ;; Stacks Grant example contract for NFT(s) -> FT Staking SIP
 ;; NFT A is the main/primary collection for a team
-;; Launched before the staking contract is life, this is an example of a custodial NFT
 ;; Written by Setzeus/StrataLabs
 
 (impl-trait .sip-09.nft-trait)
@@ -16,19 +15,19 @@
 ;; NFT Vars/Cons ;;
 ;;;;;;;;;;;;;;;;;;;
 
-;;define nft-a nft
-(define-non-fungible-token nft-a uint)
+;;define nft-b nft
+(define-non-fungible-token nft-b uint)
 
-;; nft-a(s) NFT collection limit (100)
-(define-constant nft-a-limit u100)
+;; nft-b(s) NFT collection limit (1000)
+(define-constant nft-b-limit u1000)
 
 ;; String that represents the current ipfs-root
 (define-constant ipfs-root "ipfs://ipfs//")
 
-;; Uint that represents the current nft-a that'll be minted
-(define-data-var nft-a-index uint u1)
+;; Uint that represents the current nft-b that'll be minted
+(define-data-var nft-b-index uint u1)
 
-;; Map that keeps track of listing by nft-a ID/uint
+;; Map that keeps track of listing by nft-b ID/uint
 (define-map market uint
   {
     price: uint,
@@ -46,7 +45,7 @@
 (define-constant ERR-WRONG-COMMISSION (err u104))
 (define-constant ERR-NOT-OWNER (err u106))
 (define-constant ERR-INCORRECT-SUBTYPES (err u107))
-(define-constant ERR-nft-a-NOT-OWNER (err u108))
+(define-constant ERR-nft-b-NOT-OWNER (err u108))
 (define-constant ERR-CURRENTLY-STAKED (err u109))
 (define-constant ERR-UNWRAP-STAKE-STATUS (err u110))
 
@@ -57,11 +56,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-read-only (get-last-token-id)
-  (ok (var-get nft-a-index))
+  (ok (var-get nft-b-index))
 )
 
 (define-read-only (get-owner (id uint))
-  (ok (nft-get-owner? nft-a id))
+  (ok (nft-get-owner? nft-b id))
 )
 
 (define-read-only (get-token-uri (token-id uint))
@@ -81,7 +80,9 @@
 (define-public (transfer (id uint) (sender principal) (recipient principal))
   (begin
     (asserts! (is-eq tx-sender sender) ERR-NOT-AUTH)
-    (nft-transfer? nft-a id sender recipient)
+    ;; asserts not actively staked
+    ;;(asserts! (not (get status (unwrap! (contract-call? .staking get-stake-details (as-contract tx-sender) id) ERR-UNWRAP-STAKE-STATUS))) ERR-CURRENTLY-STAKED)
+    (nft-transfer? nft-b id sender recipient)
   )
 )
 
@@ -104,7 +105,7 @@
 (define-private (is-sender-owner (id uint))
   (let
     (
-      (owner (unwrap! (nft-get-owner? nft-a id) false))
+      (owner (unwrap! (nft-get-owner? nft-b id) false))
     )
       (or (is-eq tx-sender owner) (is-eq contract-caller owner))
   )
@@ -117,6 +118,9 @@
     (
       (listing {price: price, commission: (contract-of comm-trait)})
     )
+
+    ;; asserts not actively staked
+    ;; (asserts! (not (get status (unwrap! (contract-call? .staking get-stake-details (as-contract tx-sender) id) ERR-UNWRAP-STAKE-STATUS))) ERR-CURRENTLY-STAKED)
 
     (asserts! (is-sender-owner id) ERR-NOT-AUTH)
     (map-set market id listing)
@@ -139,7 +143,7 @@
 (define-public (buy-in-ustx (id uint) (comm-trait <commission-trait>))
   (let
     (
-      (owner (unwrap! (nft-get-owner? nft-a id) ERR-NOT-AUTH))
+      (owner (unwrap! (nft-get-owner? nft-b id) ERR-NOT-AUTH))
       (listing (unwrap! (map-get? market id) ERR-NOT-LISTED))
       (price (get price listing))
     )
@@ -166,23 +170,23 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; @desc nft-a mint function
+;; @desc nft-b mint function
 ;; @param none
-(define-public (mint-nft-a (nft-id uint))
+(define-public (mint-nft-b (nft-id uint))
   (let
     (
-      (current-id (var-get nft-a-index))
+      (current-id (var-get nft-b-index))
       (next-id (+ current-id u1))
     )
 
-    ;; assert that nft-a-index < nft-a-collection limit
-    (asserts! (< current-id nft-a-limit) ERR-ALL-MINTED)
+    ;; assert that nft-b-index < nft-b-collection limit
+    (asserts! (< current-id nft-b-limit) ERR-ALL-MINTED)
 
-    ;; mint nft-a to tx-sender
-    (try! (nft-mint? nft-a current-id tx-sender))
+    ;; mint nft-b to tx-sender
+    (try! (nft-mint? nft-b current-id tx-sender))
 
     ;; updated index
-    (ok (var-set nft-a-index next-id))
+    (ok (var-set nft-b-index next-id))
   )
 )
 
