@@ -166,7 +166,10 @@
 ;; @param - collection:principal - the principal of the collection contract, item:uint - the ID of the NFT
 (define-public (claim-rewards (collection principal) (item uint)) 
   (let
-
+    (
+      (current-item-staking-data (get-item-staking-data collection item))
+    )
+    (ok true)
   )
 )
 
