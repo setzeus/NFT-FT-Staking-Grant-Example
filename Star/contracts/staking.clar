@@ -137,18 +137,21 @@
     (let
         (
             (current-item-staking-data (get-item-staking-data collection item))
-            (total-white-listed-collections (var-get whitelist-total))
-            (custodial-white-listed-collections (var-get whitelist-custodial))
-            (noncustodial-white-listed-collections (var-get whitelist-noncustodial))
+            (total-whitelisted-collections (var-get whitelist-total))
+            (custodial-whitelisted-collections (var-get whitelist-custodial))
+            (noncustodial-whitelisted-collections (var-get whitelist-noncustodial))
         )
 
         ;; Assert that the collection is whitelisted
-        (asserts! (is-some (index-of total-white-listed-collections collection)) (err "err-collection-not-whitelisted"))
+        (asserts! (is-some (index-of total-whitelisted-collections collection)) (err "err-collection-not-whitelisted"))
+
+        ;; Assert that contract-caller is one of the nft-staking helper contracts
+        (asserts! (is-some (index-of total-whitelisted-collections contract-caller)) (err "err-not-helper-contract"))
 
         ;; Check if custody-status is correctly set
         (if custodial
-            (asserts! (is-some (index-of custodial-white-listed-collections collection)) (err "err-collection-custodial-status"))
-            (asserts! (is-some (index-of noncustodial-white-listed-collections collection)) (err "err-collection-custodial-status"))
+            (asserts! (is-some (index-of custodial-whitelisted-collections collection)) (err "err-collection-custodial-status"))
+            (asserts! (is-some (index-of noncustodial-whitelisted-collections collection)) (err "err-collection-custodial-status"))
         )
 
         (ok (map-set staking-data {collection: collection, item: item} {
@@ -156,6 +159,15 @@
             last-staked-or-claimed: block-height
         }))
     )
+)
+
+;; Claim Staking Rewards
+;; @desc - function for staking-helper contracts to call & claim rewards for a given NFT
+;; @param - collection:principal - the principal of the collection contract, item:uint - the ID of the NFT
+(define-public (claim-rewards (collection principal) (item uint)) 
+  (let
+
+  )
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -52,6 +52,25 @@
     )
 )
 
+(define-public (unstake (item uint)) 
+    (let 
+        (
+            (item-staking-data (unwrap! (contract-call? .staking get-item-staking-data nft-a-principal item) (err "err-stake-does-not-exist")))
+            (staker (get staker item-staking-data))
+            (last-staked-or-claimed (get last-staked-or-claimed item-staking-data))
+        )
+
+        ;; Assert that tx-sender == item-staking-data staker
+        (asserts! (is-eq (some tx-sender) staker) (err "err-not-staker"))
+
+        ;; Check for unclaimed rewards
+        (if (> (- block-height last-staked-or-claimed) u0)
+            (unwrap! (contract-call? .staking claim-rewards nft-a-principal item) (err "err-claim-rewards"))
+            (ok true)
+        )
+    )
+)
+
 
 ;; Non-Custodial Staking
 
