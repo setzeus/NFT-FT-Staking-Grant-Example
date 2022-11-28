@@ -29,6 +29,9 @@ path = "contracts/sip-09.clar"
 [contracts.sip-10]
 path = "contracts/sip-10.clar"
 
+[contracts.sip-16]
+path = "contracts/sip-16.clar"
+
 [contracts.staking]
 path = "contracts/staking.clar"
 

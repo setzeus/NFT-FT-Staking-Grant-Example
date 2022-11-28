@@ -4,6 +4,7 @@
 ;; Written by Setzeus/StrataLabs
 
 (use-trait nft-trait .sip-09.nft-trait)
+(use-trait stake-helper-trait .sip-16.stake-helper-trait)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -32,7 +33,7 @@
 ;; Var for helping principals with list
 (define-data-var helper-principal principal tx-sender)
 
-;; Map that defines the staking status for an NFT
+;; Map that defines the staking status for an NFT globally
 (define-map staking-data {collection: principal, item: uint} {
     staker: (optional principal),
     last-staked-or-claimed: uint
@@ -60,6 +61,39 @@
 (define-read-only (get-item-staking-data (collection principal) (item uint)) 
     (map-get? staking-data {collection: collection, item: item})
 )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Get Total Unclaimed Balance ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Calculates the current unclaimed balance for a user across all whitelisted collections
+(define-read-only (get-total-unclaimed-balance) 
+  (let 
+    (
+      (list-of-all-collections-with-active-user-stakes (filter filter-out-collections-with-no-stakes (var-get whitelist-total)))
+      (list-of-unclaimed-balances (list))
+    )
+    (ok list-of-all-collections-with-active-user-stakes)
+  )
+) 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Get Collection Unclaimed Balance ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-read-only (get-collection-unclaimed-balance (collection <stake-helper-trait>))
+  (let
+    (
+      (this-collection-multiplier (unwrap! (map-get? collection-multiplier (contract-of collection)) (err "err-collection-has-no-multiplier")))
+      (this-collection-stakes-by-user (unwrap! (map-get? user-stakes-by-collection {user: tx-sender, collection: (contract-of collection)}) (err "err-user-has-no-stakes")))
+      ;;(list-of-unclaimed-balance-per-item )
+    )
+    (ok true)
+  )
+)
+
+;; Map from collection IDs to collection height differences / unclaimed balance
+;; (define-private (map-from-ids-to-heights (item uint)) 
+;;   (staked-or-claimed-height (get last-staked-or-claimed (unwrap! (map-get? staking-data {collection: collection, item: item}))))
+;; )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Get Total Generation Rate ;;
@@ -105,12 +139,12 @@
 ;;;;;;;;
 
 ;; Get generation rate for a given collection
-(define-read-only (get-generation-by-collection (collection principal))
+(define-public (get-generation-by-collection (collection <stake-helper-trait>))
   (let
     (
-      (this-collection-multiplier (default-to u0 (map-get? collection-multiplier collection)))
-      (collection-staked-by-user-list (get-staked-by-collection-and-user collection))
-      (collection-staked-by-user-count (len (unwrap! collection-staked-by-user-list (err "err-unwrap"))))
+      (this-collection-multiplier (default-to u0 (map-get? collection-multiplier (contract-of collection))))
+      (collection-staked-by-user-list (get-staked-by-collection-and-user collection tx-sender))
+      (collection-staked-by-user-count (len (unwrap! (unwrap! collection-staked-by-user-list (err "err-unwrap")) (err "err-unwrap"))))
       (this-collection-multiplier-normalized (/ (* this-collection-multiplier (var-get max-payout-per-block)) u100))
     )
 
@@ -121,8 +155,8 @@
 )
 
 ;; @desc - Read function that returns a (list uint) of all actively-staked IDs in a collection by tx-sender
-(define-read-only (get-staked-by-collection-and-user (collection principal))
-  (ok (default-to (list) (map-get? user-stakes-by-collection {user: tx-sender, collection: collection})))
+(define-public (get-staked-by-collection-and-user (collection <stake-helper-trait>) (user principal))
+  (contract-call? collection get-local-stakes user)
 )
 
 
