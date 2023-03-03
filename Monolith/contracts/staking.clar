@@ -63,9 +63,7 @@
 ;; @desc - Map that tracks of a staked item details (value) by collection & ID (key)
 (define-map staked-item {collection: principal, id: uint}
   {
-    ;; Why isn't this an optional?
     staker: principal,
-    status: bool,
     last-staked-or-claimed: uint
   }
 )
@@ -171,7 +169,7 @@
 (define-read-only (get-stake-details (collection principal) (item-id uint))
   (ok
     (default-to
-      {staker: (unwrap! (element-at (var-get admins) u0) (err "err-admin-list-empty")), status: false,last-staked-or-claimed: block-height}
+      {staker: (unwrap! (element-at (var-get admins) u0) (err "err-admin-list-empty")),last-staked-or-claimed: block-height}
       (map-get? staked-item {collection: collection, id: item-id}))
     )
 )
@@ -217,7 +215,7 @@
       (current-all-staked-in-collection-list (default-to (list) (map-get? all-stakes-in-collection (contract-of collection))))
       (is-unstaked-in-all-staked-ids-list (index-of current-all-staked-in-collection-list id))
       (is-unstaked-in-staked-by-user-list (index-of (default-to (list) (map-get? user-stakes-by-collection {user: tx-sender, collection: (contract-of collection)})) id))
-      (is-unstaked-in-stake-details-map (get status (default-to {status: false, last-staked-or-claimed: block-height, staker: tx-sender} (map-get? staked-item {collection: (var-get helper-collection-principal), id: id}))))
+      (is-unstaked-in-item-details (map-get? staked-item {collection: (contract-of collection), id: id}))
       (current-nft-owner (unwrap-panic (contract-call? collection get-owner id)))
     )
 
@@ -228,7 +226,7 @@
     (asserts! (is-eq (some tx-sender) current-nft-owner) ERR-NOT-OWNER)
 
     ;; Asserts item is unstaked across all necessary storage
-    (asserts! (and (is-none is-unstaked-in-all-staked-ids-list) (is-none is-unstaked-in-staked-by-user-list) (not is-unstaked-in-stake-details-map)) ERR-STAKED-OR-NONE)
+    (asserts! (and (is-none is-unstaked-in-all-staked-ids-list) (is-none is-unstaked-in-staked-by-user-list) (is-none is-unstaked-in-item-details)) ERR-STAKED-OR-NONE)
 
     ;; Check whether collection is custodial or non-custodial
     (if (is-some (index-of (var-get allowlist-collections-custodial) (contract-of collection)))
@@ -254,13 +252,60 @@
     (ok (map-set staked-item {collection: (contract-of collection), id: id}
       {
         staker: tx-sender,
-        status: true,
         last-staked-or-claimed: block-height
       }
     ))
   )
 )
 
+;; @desc - Universal staking function for a single collection & multiple IDs
+;; @param - collection - <nft-trait> - The collection to stake in, ids - (list uint) - The IDs to stake
+(define-public (stake-multiple (collection <nft-trait>) (ids (list 100 uint)))
+  (let
+    (
+      (current-all-staked-in-collection-list (default-to (list) (map-get? all-stakes-in-collection (contract-of collection))))
+      (current-staked-by-user-list (default-to (list) (map-get? user-stakes-by-collection {user: tx-sender, collection: (contract-of collection)})))
+      ;;(all-staked-in-collection-list-fold )
+      ;;(current-stake-details-map (map-get? staked-item {collection: (contract-of collection), id: id}))
+      ;;(current-nft-owner (unwrap-panic (contract-call? collection get-owner id)))
+    )
+
+    ;; Assert collection is whitelisted
+    (asserts! (is-some (index-of (var-get allowlist-collections-total) (contract-of collection))) ERR-NOT-ALLOWLISTED)
+
+    ;; Assert caller is current owner of NFT
+   ;; (asserts! (is-eq (some tx-sender) current-nft-owner) ERR-NOT-OWNER)
+
+    ;; Check whether collection is custodial or non-custodial
+    ;; (if (is-some (index-of (var-get allowlist-collections-custodial) (contract-of collection)))
+    ;;    ;; Collection is custodial, owner needs to transfer
+    ;;     (unwrap! (contract-call? collection transfer id tx-sender (as-contract tx-sender)) ERR-NFT-TRANSFER)
+        
+    ;;    ;; Collection is not custodial, need to flip stake property in contract
+    ;;     false
+    ;; )
+
+    ;; Var set all staked ids list
+    ;; (map-set all-stakes-in-collection (contract-of collection)
+    ;;   (unwrap! (as-max-len? (append current-all-staked-in-collection-list ids) u10000) ERR-UNWRAP)
+    ;; )
+
+    ;; Map set user staked in collection list
+    ;; (map-set user-stakes-by-collection {user: tx-sender, collection: (contract-of collection)}
+    ;;     (unwrap! (as-max-len? (append current-staked-by-user-list ids) u10000) ERR-UNWRAP)
+    ;; )
+
+    ;; Map set staked-item details
+    (ok (map-set staked-item {collection: (contract-of collection), id: u0}
+      {
+        staker: tx-sender,
+        last-staked-or-claimed: block-height
+      }
+    ))
+  )
+)
+
+;; For every item need to check staked-item map & all-stakes-in-collection map
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -276,9 +321,8 @@
     (
       (this-collection-multiplier (default-to u0 (map-get? collection-multiplier (contract-of collection-collective))))
       (this-collection-multiplier-normalized (/ (* this-collection-multiplier (var-get max-payout-per-block)) u100))
-      (current-staker (get staker (default-to {status: false, last-staked-or-claimed: block-height, staker: tx-sender} (map-get? staked-item {collection: (contract-of collection-collective), id: staked-id}))))
-      (stake-status (get status (default-to {status: false, last-staked-or-claimed: block-height, staker: tx-sender} (map-get? staked-item {collection: (contract-of collection-collective), id: staked-id}))))
-      (last-claimed-or-staked-height (get last-staked-or-claimed (default-to {status: false, last-staked-or-claimed: block-height, staker: tx-sender} (map-get? staked-item {collection: (contract-of collection-collective), id: staked-id}))))
+      (current-staker (get staker (default-to {last-staked-or-claimed: block-height, staker: tx-sender} (map-get? staked-item {collection: (contract-of collection-collective), id: staked-id}))))
+      (last-claimed-or-staked-height (get last-staked-or-claimed (default-to {last-staked-or-claimed: block-height, staker: tx-sender} (map-get? staked-item {collection: (contract-of collection-collective), id: staked-id}))))
       (current-nft-owner (unwrap! (contract-call? collection-collective get-owner staked-id) ERR-NOT-AUTH))
       (blocks-staked (- block-height last-claimed-or-staked-height))
     )
@@ -287,10 +331,10 @@
     (asserts! (is-some (index-of (var-get allowlist-collections-total) (contract-of collection-collective))) ERR-NOT-ALLOWLISTED)                                     
 
     ;; asserts is staked
-    (asserts! stake-status ERR-NOT-STAKED)
+    ;;(asserts! stake-status ERR-NOT-STAKED)
 
     ;; asserts tx-sender is owner && asserts tx-sender is staker
-    (asserts! (and (is-eq tx-sender current-staker) (is-eq (some tx-sender) current-nft-owner)) ERR-NOT-OWNER)
+    (asserts! (and (is-eq tx-sender current-staker)) ERR-NOT-OWNER)
 
     ;; asserts height-difference > 0
     (asserts! (> blocks-staked u0) ERR-MIN-STAKE-HEIGHT)
@@ -301,7 +345,6 @@
     ;; update last-staked-or-claimed height
     (ok (map-set staked-item {collection: (contract-of collection-collective), id: staked-id}
       {
-        status: true,
         last-staked-or-claimed: block-height,
         staker: tx-sender
       }
@@ -359,9 +402,8 @@
     (
       (this-collection-multiplier (default-to u0 (map-get? collection-multiplier (contract-of collection))))
       (this-collection-multiplier-normalized (/ (* this-collection-multiplier (var-get max-payout-per-block)) u100))
-      (current-staker (get staker (default-to {status: false, last-staked-or-claimed: block-height, staker: tx-sender} (map-get? staked-item {collection: (contract-of collection), id: staked-id}))))
-      (stake-status (get status (default-to {status: false, last-staked-or-claimed: block-height, staker: tx-sender} (map-get? staked-item {collection: (contract-of collection), id: staked-id}))))
-      (last-claimed-or-staked-height (get last-staked-or-claimed (default-to {status: false, last-staked-or-claimed: block-height, staker: tx-sender} (map-get? staked-item {collection: (contract-of collection), id: staked-id}))))
+      (current-staker (get staker (default-to {last-staked-or-claimed: block-height, staker: tx-sender} (map-get? staked-item {collection: (contract-of collection), id: staked-id}))))
+      (last-claimed-or-staked-height (get last-staked-or-claimed (default-to {last-staked-or-claimed: block-height, staker: tx-sender} (map-get? staked-item {collection: (contract-of collection), id: staked-id}))))
       (current-nft-owner (unwrap! (contract-call? collection get-owner staked-id) ERR-NOT-AUTH))
       (blocks-staked (- block-height last-claimed-or-staked-height))
       (current-all-staked-in-collection-list (default-to (list) (map-get? all-stakes-in-collection (contract-of collection))))
@@ -369,7 +411,7 @@
     )
 
     ;; asserts is staked
-    (asserts! stake-status ERR-NOT-STAKED)
+    ;;(asserts! stake-status ERR-NOT-STAKED)
 
     ;; asserts tx-sender is owner && asserts tx-sender is staker
     (asserts! (and (is-eq tx-sender current-staker) (is-eq (some tx-sender) current-nft-owner)) ERR-NOT-OWNER)
@@ -396,7 +438,6 @@
     ;; update last-staked-or-claimed height
     (ok (map-set staked-item {collection: (contract-of collection), id: staked-id}
       {
-        status: false,
         last-staked-or-claimed: block-height,
         staker: tx-sender
       }
@@ -517,9 +558,8 @@
     (
       (this-collection-multiplier (default-to u0 (map-get? collection-multiplier (contract-of collection))))
       (this-collection-multiplier-normalized (/ (* this-collection-multiplier (var-get max-payout-per-block)) u100))
-      (original-owner (get staker (default-to {status: false, last-staked-or-claimed: block-height, staker: tx-sender} (map-get? staked-item {collection: (contract-of collection), id: id}))))
-      (last-claimed-or-staked-height (get last-staked-or-claimed (default-to {status: false, last-staked-or-claimed: block-height, staker: tx-sender} (map-get? staked-item {collection: (contract-of collection), id: id}))))
-      (stake-status (get status (default-to {status: false, last-staked-or-claimed: block-height, staker: tx-sender} (map-get? staked-item {collection: (contract-of collection), id: id}))))
+      (original-owner (get staker (default-to {last-staked-or-claimed: block-height, staker: tx-sender} (map-get? staked-item {collection: (contract-of collection), id: id}))))
+      (last-claimed-or-staked-height (get last-staked-or-claimed (default-to {last-staked-or-claimed: block-height, staker: tx-sender} (map-get? staked-item {collection: (contract-of collection), id: id}))))
       (current-owner (unwrap! (contract-call? collection get-owner id) ERR-NOT-AUTH))
       (blocks-staked (- block-height last-claimed-or-staked-height))
     ) 
@@ -527,7 +567,7 @@
     ;; check if collection is custodial / noncustodial & deal accordingly
 
     ;; asserts that item is actively staked
-    (asserts! stake-status ERR-NOT-STAKED)
+    ;;(asserts! stake-status ERR-NOT-STAKED)
 
     ;; asserts that contract is current owner & that staker/original owner is *not* contract
     (asserts! (and (is-eq (some (as-contract tx-sender)) current-owner) (not (is-eq (as-contract  tx-sender) original-owner))) ERR-NOT-OWNER)
@@ -659,7 +699,7 @@
 (define-private (append-helper-list-from-id-staked-to-height-difference (staked-id uint))
   (let
     (
-      (staked-or-claimed-height (get last-staked-or-claimed (default-to {status: false, last-staked-or-claimed: block-height, staker: tx-sender} (map-get? staked-item {collection: (var-get helper-collection-principal), id: staked-id}))))
+      (staked-or-claimed-height (get last-staked-or-claimed (default-to {last-staked-or-claimed: block-height, staker: tx-sender} (map-get? staked-item {collection: (var-get helper-collection-principal), id: staked-id}))))
       (height-difference (- block-height staked-or-claimed-height))
     )
 
@@ -674,7 +714,7 @@
 (define-private (map-from-id-staked-to-height-difference (staked-id uint))
   (let
     (
-      (staked-or-claimed-height (get last-staked-or-claimed (default-to {status: false, last-staked-or-claimed: block-height, staker: tx-sender} (map-get? staked-item {collection: (var-get helper-collection-principal), id: staked-id}))))
+      (staked-or-claimed-height (get last-staked-or-claimed (default-to {last-staked-or-claimed: block-height, staker: tx-sender} (map-get? staked-item {collection: (var-get helper-collection-principal), id: staked-id}))))
     )
     (print (- block-height staked-or-claimed-height))
     (- block-height staked-or-claimed-height)
@@ -685,7 +725,7 @@
   (begin
     (map-set staked-item {collection: (var-get helper-collection-principal), id: staked-id}
       (merge
-        (default-to {status: false, last-staked-or-claimed: block-height, staker: tx-sender} (map-get? staked-item {collection: (var-get helper-collection-principal), id: staked-id}))
+        (default-to {last-staked-or-claimed: block-height, staker: tx-sender} (map-get? staked-item {collection: (var-get helper-collection-principal), id: staked-id}))
         {last-staked-or-claimed: block-height}
       )
     )
@@ -707,7 +747,7 @@
   (begin
     (map-set staked-item {collection: (var-get helper-collection-principal), id: staked-id}
       (merge
-        (default-to {status: false, last-staked-or-claimed: block-height, staker: tx-sender} (map-get? staked-item {collection: (var-get helper-collection-principal), id: staked-id}))
+        (default-to {last-staked-or-claimed: block-height, staker: tx-sender} (map-get? staked-item {collection: (var-get helper-collection-principal), id: staked-id}))
         {last-staked-or-claimed: block-height}
       )
     )

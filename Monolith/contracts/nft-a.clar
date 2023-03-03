@@ -168,7 +168,7 @@
 
 ;; @desc nft-a mint function
 ;; @param none
-(define-public (mint-nft-a (nft-id uint))
+(define-public (mint-nft-a)
   (let
     (
       (current-id (var-get nft-a-index))

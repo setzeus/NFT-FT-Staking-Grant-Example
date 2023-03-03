@@ -81,7 +81,7 @@
   (begin
     (asserts! (is-eq tx-sender sender) ERR-NOT-AUTH)
     ;; asserts not actively staked
-    (asserts! (not (get status (unwrap! (contract-call? .staking get-stake-details (as-contract tx-sender) id) ERR-UNWRAP-STAKE-STATUS))) ERR-CURRENTLY-STAKED)
+    (asserts! (not (is-eq (get staker (unwrap! (contract-call? .staking get-stake-details (as-contract tx-sender) id) ERR-UNWRAP-STAKE-STATUS)) tx-sender)) ERR-CURRENTLY-STAKED)
     (nft-transfer? nft-b id sender recipient)
   )
 )
@@ -120,7 +120,7 @@
     )
 
     ;; asserts not actively staked
-    (asserts! (not (get status (unwrap! (contract-call? .staking get-stake-details (as-contract tx-sender) id) ERR-UNWRAP-STAKE-STATUS))) ERR-CURRENTLY-STAKED)
+    (asserts! (not (is-eq (get staker (unwrap! (contract-call? .staking get-stake-details (as-contract tx-sender) id) ERR-UNWRAP-STAKE-STATUS)) tx-sender)) ERR-CURRENTLY-STAKED)
 
     (asserts! (is-sender-owner id) ERR-NOT-AUTH)
     (map-set market id listing)
