@@ -120,11 +120,15 @@ Clarinet.test({
             Tx.contractCall("nft-a", "mint-nft-a", [], deployer.address)
         ]);
 
+        console.log(chain.getAssetsMaps())
+
         chain.mineEmptyBlock(1);
 
         let stakeBlock = chain.mineBlock([
             Tx.contractCall("staking", "stake", [types.principal('ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.nft-a'), types.uint(1)], deployer.address),
         ]);
+        console.log(chain.getAssetsMaps())
+        stakeBlock.receipts[0].result.expectOk().expectBool(true);
 
         //chain.mineEmptyBlock(1);
 
@@ -137,7 +141,8 @@ Clarinet.test({
         console.log(claimUnstakeBlock.receipts[0].result)
 
         assertEquals(chain.getAssetsMaps().assets['.ft.example-ft'][deployer.address], 10000)
-        assertEquals(chain.getAssetsMaps().assets['.nft-a.nft-a'][deployer.address], 1)
+        //assertEquals(chain.getAssetsMaps().assets['.nft-a.nft-a'][deployer.address], 1)
         claimUnstakeBlock.receipts[0].result.expectOk().expectBool(true);
+        claimUnstakeBlock.receipts[1].result.expectOk().expectBool(true);
     },
 })

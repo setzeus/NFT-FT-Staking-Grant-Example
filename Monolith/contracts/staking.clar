@@ -103,6 +103,8 @@
 (define-constant ERR-UNWRAP-GET-UNCLAIMED-BALANCE-BY-COLLECTION (err u116))
 (define-constant ERR-CURRENTLY-STAKED (err u117))
 (define-constant ERR-UNWRAP-STAKE-STATUS (err u118))
+(define-constant ERR-UNWRAP-FT (err u119))
+(define-constant ERR-UNWRAP-NFT (err u120))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -404,7 +406,7 @@
       (this-collection-multiplier-normalized (/ (* this-collection-multiplier (var-get max-payout-per-block)) u100))
       (current-staker (get staker (default-to {last-staked-or-claimed: block-height, staker: tx-sender} (map-get? staked-item {collection: (contract-of collection), id: staked-id}))))
       (last-claimed-or-staked-height (get last-staked-or-claimed (default-to {last-staked-or-claimed: block-height, staker: tx-sender} (map-get? staked-item {collection: (contract-of collection), id: staked-id}))))
-      (current-nft-owner (unwrap! (contract-call? collection get-owner staked-id) ERR-NOT-AUTH))
+      ;;(current-nft-owner (unwrap! (contract-call? collection get-owner staked-id) ERR-NOT-AUTH))
       (blocks-staked (- block-height last-claimed-or-staked-height))
       (current-all-staked-in-collection-list (default-to (list) (map-get? all-stakes-in-collection (contract-of collection))))
       (current-user-staked-by-collection-list (default-to (list) (map-get? user-stakes-by-collection {user: tx-sender, collection: (contract-of collection)})))
@@ -414,16 +416,28 @@
     ;;(asserts! stake-status ERR-NOT-STAKED)
 
     ;; asserts tx-sender is owner && asserts tx-sender is staker
-    (asserts! (and (is-eq tx-sender current-staker) (is-eq (some tx-sender) current-nft-owner)) ERR-NOT-OWNER)
+    (asserts! (is-eq tx-sender current-staker) ERR-NOT-OWNER)
 
     ;; check if blocks-staked > 0 to see if there's any unclaimed $SNOW to claim
     (if (> blocks-staked u0)
 
       ;; if there is, need to claim unstaked
-      (unwrap! (contract-call? .ft mint (* this-collection-multiplier-normalized blocks-staked) tx-sender) ERR-UNWRAP)
+      (unwrap! (contract-call? .ft mint (* this-collection-multiplier-normalized blocks-staked) tx-sender) ERR-UNWRAP-FT)
 
       ;; if not, proceed
       true
+    )
+
+    
+  
+    ;; check if collection is in allowlist-collections-custodial
+    (if (is-some (index-of (var-get allowlist-collections-custodial) (contract-of collection)))
+
+      ;; if so, transfer NFT back to tx-sender
+      (as-contract (unwrap! (contract-call? collection transfer staked-id tx-sender current-staker) ERR-UNWRAP-NFT))
+
+      ;; if not, proceed
+      (as-contract (unwrap! (contract-call? collection transfer staked-id tx-sender current-staker) ERR-UNWRAP-NFT))
     )
 
     ;; Set helper id for removal in filters below
@@ -442,6 +456,10 @@
         staker: tx-sender
       }
     ))
+
+
+    ;; line below is to test why we can't transfer back
+    ;;(ok (as-contract (unwrap! (contract-call? collection transfer staked-id tx-sender current-staker) ERR-UNWRAP-NFT)))
   )
 )
 
