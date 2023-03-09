@@ -262,50 +262,50 @@
 
 ;; @desc - Universal staking function for a single collection & multiple IDs
 ;; @param - collection - <nft-trait> - The collection to stake in, ids - (list uint) - The IDs to stake
-(define-public (stake-multiple (collection <nft-trait>) (ids (list 100 uint)))
-  (let
-    (
-      (current-all-staked-in-collection-list (default-to (list) (map-get? all-stakes-in-collection (contract-of collection))))
-      (current-staked-by-user-list (default-to (list) (map-get? user-stakes-by-collection {user: tx-sender, collection: (contract-of collection)})))
-      ;;(all-staked-in-collection-list-fold )
-      ;;(current-stake-details-map (map-get? staked-item {collection: (contract-of collection), id: id}))
-      ;;(current-nft-owner (unwrap-panic (contract-call? collection get-owner id)))
-    )
+;; (define-public (stake-multiple (collection <nft-trait>) (ids (list 100 uint)))
+;;   (let
+;;     (
+;;       (current-all-staked-in-collection-list (default-to (list) (map-get? all-stakes-in-collection (contract-of collection))))
+;;       (current-staked-by-user-list (default-to (list) (map-get? user-stakes-by-collection {user: tx-sender, collection: (contract-of collection)})))
+;;       ;;(all-staked-in-collection-list-fold )
+;;       ;;(current-stake-details-map (map-get? staked-item {collection: (contract-of collection), id: id}))
+;;       ;;(current-nft-owner (unwrap-panic (contract-call? collection get-owner id)))
+;;     )
 
-    ;; Assert collection is whitelisted
-    (asserts! (is-some (index-of (var-get allowlist-collections-total) (contract-of collection))) ERR-NOT-ALLOWLISTED)
+;;     ;; Assert collection is whitelisted
+;;     (asserts! (is-some (index-of (var-get allowlist-collections-total) (contract-of collection))) ERR-NOT-ALLOWLISTED)
 
-    ;; Assert caller is current owner of NFT
-   ;; (asserts! (is-eq (some tx-sender) current-nft-owner) ERR-NOT-OWNER)
+;;     ;; Assert caller is current owner of NFT
+;;    ;; (asserts! (is-eq (some tx-sender) current-nft-owner) ERR-NOT-OWNER)
 
-    ;; Check whether collection is custodial or non-custodial
-    ;; (if (is-some (index-of (var-get allowlist-collections-custodial) (contract-of collection)))
-    ;;    ;; Collection is custodial, owner needs to transfer
-    ;;     (unwrap! (contract-call? collection transfer id tx-sender (as-contract tx-sender)) ERR-NFT-TRANSFER)
+;;     ;; Check whether collection is custodial or non-custodial
+;;     ;; (if (is-some (index-of (var-get allowlist-collections-custodial) (contract-of collection)))
+;;     ;;    ;; Collection is custodial, owner needs to transfer
+;;     ;;     (unwrap! (contract-call? collection transfer id tx-sender (as-contract tx-sender)) ERR-NFT-TRANSFER)
         
-    ;;    ;; Collection is not custodial, need to flip stake property in contract
-    ;;     false
-    ;; )
+;;     ;;    ;; Collection is not custodial, need to flip stake property in contract
+;;     ;;     false
+;;     ;; )
 
-    ;; Var set all staked ids list
-    ;; (map-set all-stakes-in-collection (contract-of collection)
-    ;;   (unwrap! (as-max-len? (append current-all-staked-in-collection-list ids) u10000) ERR-UNWRAP)
-    ;; )
+;;     ;; Var set all staked ids list
+;;     ;; (map-set all-stakes-in-collection (contract-of collection)
+;;     ;;   (unwrap! (as-max-len? (append current-all-staked-in-collection-list ids) u10000) ERR-UNWRAP)
+;;     ;; )
 
-    ;; Map set user staked in collection list
-    ;; (map-set user-stakes-by-collection {user: tx-sender, collection: (contract-of collection)}
-    ;;     (unwrap! (as-max-len? (append current-staked-by-user-list ids) u10000) ERR-UNWRAP)
-    ;; )
+;;     ;; Map set user staked in collection list
+;;     ;; (map-set user-stakes-by-collection {user: tx-sender, collection: (contract-of collection)}
+;;     ;;     (unwrap! (as-max-len? (append current-staked-by-user-list ids) u10000) ERR-UNWRAP)
+;;     ;; )
 
-    ;; Map set staked-item details
-    (ok (map-set staked-item {collection: (contract-of collection), id: u0}
-      {
-        staker: tx-sender,
-        last-staked-or-claimed: block-height
-      }
-    ))
-  )
-)
+;;     ;; Map set staked-item details
+;;     (ok (map-set staked-item {collection: (contract-of collection), id: u0}
+;;       {
+;;         staker: tx-sender,
+;;         last-staked-or-claimed: block-height
+;;       }
+;;     ))
+;;   )
+;; )
 
 ;; For every item need to check staked-item map & all-stakes-in-collection map
 
@@ -412,9 +412,6 @@
       (current-user-staked-by-collection-list (default-to (list) (map-get? user-stakes-by-collection {user: tx-sender, collection: (contract-of collection)})))
     )
 
-    ;; asserts is staked
-    ;;(asserts! stake-status ERR-NOT-STAKED)
-
     ;; asserts tx-sender is owner && asserts tx-sender is staker
     (asserts! (is-eq tx-sender current-staker) ERR-NOT-OWNER)
 
@@ -437,7 +434,7 @@
       (as-contract (unwrap! (contract-call? collection transfer staked-id tx-sender current-staker) ERR-UNWRAP-NFT))
 
       ;; if not, proceed
-      (as-contract (unwrap! (contract-call? collection transfer staked-id tx-sender current-staker) ERR-UNWRAP-NFT))
+      true
     )
 
     ;; Set helper id for removal in filters below
@@ -457,9 +454,6 @@
       }
     ))
 
-
-    ;; line below is to test why we can't transfer back
-    ;;(ok (as-contract (unwrap! (contract-call? collection transfer staked-id tx-sender current-staker) ERR-UNWRAP-NFT)))
   )
 )
 
