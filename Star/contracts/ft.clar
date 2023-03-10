@@ -1,15 +1,188 @@
+;; $example-ft FT Contract
+;; This contract represents the $example-ft FT - the fungible token for the CrashPunks metaverse.
+;; Written by Cyb-Pato/Setzeus from StrataLabs
 
-;; ft
-;; <add a description here>
+;; FT
+;; Stacks Grant example contract for NFT(s) -> FT Staking SIP
+;; This contract is in charge of defining & maintaining all FT (sip10) properties
+;; Written by Setzeus/StrataLabs
 
-;; constants
-;;
+;; FT Unique Properties
+;; Minting should only be allowed by the staking.clar contract
 
-;; data maps and vars
-;;
+(impl-trait .sip-10.ft-trait)
+(use-trait nft-trait .sip-09.nft-trait)
+(use-trait stake-helper-trait .sip-16.stake-helper)
+(use-trait stake-main-trait .sip-16.stake-main)
 
-;; private functions
-;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; Cons, Vars, & Maps ;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; public functions
-;;
+(define-constant contract-owner tx-sender)
+(define-constant TOKEN_NAME "EXMPL")
+(define-constant TOKEN_SYMBOL "EXP")
+(define-constant TOKEN_DECIMALS u6)
+(define-constant TOKEN_URI none)
+(define-constant TOKEN_MAX_SUPPLY u10000000000000)
+
+;;;;;;;;;;;;;;;;;;;
+;; FT Vars/Cons ;;
+;;;;;;;;;;;;;;;;;;;
+
+(define-fungible-token example-ft TOKEN_MAX_SUPPLY)
+
+;;;;;;;;;;;;;;;;
+;; Error Cons ;;
+;;;;;;;;;;;;;;;;
+
+(define-constant ERR_SENDER_NOT_VALID (err u1000))
+(define-constant ERR_SENDER_AND_RECIPENT_IS_EQUAL (err u1001))
+(define-constant ERR_INSUFFICIENT_AMOUNT (err u1002))
+(define-constant ERR_GETING_BALANCE_OF_SENDER (err u1003))
+(define-constant ERR_SENDER_BALANCE_NOT_VALID (err u1004))
+(define-constant ERR_NOT_ALLOWED (err u1005))
+(define-constant ERR_RECIPIENT_NOT_VALID (err u1006))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;; SIP10 Functions ;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-public (transfer (amount uint) (sender principal) (recipient principal) (memo (optional (buff 34))))
+  (begin
+
+    ;; assert sender is tx-sender
+    (asserts! (is-eq tx-sender sender) ERR_SENDER_NOT_VALID)
+
+    ;; assert sender is not recipient
+    (asserts! (not (is-eq sender recipient)) ERR_SENDER_AND_RECIPENT_IS_EQUAL)
+
+    ;; assert amount transferred > 0
+    (asserts! (> amount u0) ERR_INSUFFICIENT_AMOUNT)
+
+    ;; assert amount transferred =< balance of sender
+    (asserts! (<= amount (unwrap! (get-balance sender) ERR_GETING_BALANCE_OF_SENDER)) ERR_SENDER_BALANCE_NOT_VALID)
+
+    ;; transfer
+    (try! (ft-transfer? example-ft amount sender recipient))
+    (match memo to-print (print to-print) 0x)
+    (ok true)
+  )
+)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;; Read Functions ;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-read-only (get-name)
+  (ok TOKEN_NAME)
+)
+
+(define-read-only (get-symbol)
+  (ok TOKEN_SYMBOL)
+)
+
+(define-read-only (get-decimals)
+  (ok TOKEN_DECIMALS)
+)
+
+(define-read-only (get-balance (account principal))
+  (ok (ft-get-balance example-ft account))
+)
+
+(define-read-only (get-total-supply)
+  (ok (ft-get-supply example-ft))
+)
+
+(define-read-only (get-token-uri)
+  (ok TOKEN_URI)
+)
+
+(define-read-only (get-max-supply)
+  (ok TOKEN_MAX_SUPPLY)
+)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;; Mint Functions ;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-public (mint (amount uint) (recipient principal))
+  (let
+    (
+      (current-total-supply (ft-get-supply example-ft))
+    )
+
+    ;; asserts that caller is either admin(?) or staking contract caller
+    (asserts! (or (is-eq tx-sender contract-owner) (is-eq contract-caller .staking)) (err u3))
+
+    ;; asserts that recipient is not planting/staking contract
+    (asserts! (not (is-eq recipient .staking)) ERR_RECIPIENT_NOT_VALID)
+
+    ;; asserts that amount is greater than 0
+    (asserts! (> amount u0) ERR_INSUFFICIENT_AMOUNT)
+
+    ;; asserts that amount is less than
+    (asserts! (<= amount (- TOKEN_MAX_SUPPLY current-total-supply)) ERR_NOT_ALLOWED)
+    (ft-mint? example-ft amount recipient)
+  )
+)
+
+;; Claim mint
+;; Function specifically for claiming/minting from an active stake
+;; @param: (nft) - the nft to claim from
+(define-public (claim-mint (team <stake-main-trait>) (collection-helper <stake-helper-trait>) (collection <nft-trait>) (item uint))
+    (let 
+        (
+            (team-whitelisted-collections (unwrap! (contract-call? .staking get-whitelisted-collections) (err u100)))
+            (helper-collection (unwrap! (contract-call? collection-helper get-contract) (err u101)))
+            ;; Collection Data
+            (collection-max-reward-per-block (unwrap! (contract-call? team get-max-reward-per-block) (err u102)))
+            (collection-multiplier (unwrap! (contract-call? collection-helper get-multiplier) (err u102)))
+            ;; Item Data
+            (current-nft-owner (unwrap! (contract-call? collection get-owner u0) (err u102)))
+            (current-staking-data (unwrap! (contract-call? collection-helper get-staking-data item) (err u103)))
+            (current-staker (get staker current-staking-data))
+            (current-last-staked-or-claimed (unwrap! (get last-staked-or-claimed current-staking-data) (err u103)))
+            (current-height-different (- block-height current-last-staked-or-claimed))
+            ;; Calculate claim/mint amount
+            (current-stake-normalized (/ (* collection-multiplier current-height-different) collection-max-reward-per-block))
+        )
+        
+        ;; Assert that the collection is whitelisted && the collection is the same as the helper collection
+        (asserts! (and (is-some (index-of team-whitelisted-collections helper-collection)) (is-eq helper-collection (contract-of collection))) (err u104))
+
+        ;; Assert that the current nft owner is the staker
+        (asserts! (is-eq (some current-nft-owner) current-staker) (err u105))
+
+        ;; asserts that amount is greater than 0
+        (asserts! (> current-stake-normalized u0) (err u106))
+
+        ;; asserts that amount is less than
+        (asserts! (<= current-stake-normalized (- TOKEN_MAX_SUPPLY (ft-get-supply example-ft))) (err u107))
+        (ft-mint? example-ft current-stake-normalized tx-sender)
+    )
+)
+
+(define-public (burn (amount uint) (sender principal))
+  (begin
+    (asserts! (is-eq tx-sender sender) ERR_SENDER_NOT_VALID)
+    (asserts! (> amount u0) ERR_INSUFFICIENT_AMOUNT)
+    (asserts! (<= amount (ft-get-balance example-ft sender)) ERR_SENDER_BALANCE_NOT_VALID)
+    (ft-burn? example-ft amount sender)
+  )
+)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;; Admin Functions ;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;

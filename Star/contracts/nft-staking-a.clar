@@ -89,12 +89,13 @@
     (let
         (
             ;;(item-staking-data (unwrap! (contract-call? .staking get-item-staking-data nft-a-principal item) (err "err-contract-call-get-item-staking-data")))
+            (current-item-staking-data (unwrap! (get-staking-data item) (err u100)))
             (current-user-stakes (map-get? all-user-stakes tx-sender))
+            (current-nft-owner (unwrap! (contract-call? .nft-a get-owner item) (err u101)))
         )
 
-        ;; Do *not* need to assert that tx-sender == owner or else transfer below will fail
         ;; Send NFT to this contract
-        (unwrap! (contract-call? .nft-a transfer item tx-sender (as-contract tx-sender)) (err u300))
+        (unwrap! (contract-call? .nft-a transfer item tx-sender (as-contract tx-sender)) (err u102))
 
         ;; Update local staking data
         (map-set staking-data item {

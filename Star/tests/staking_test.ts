@@ -10,7 +10,7 @@ const nftAContract = "nft-a";
 const stakingPrincipal = (deployer: Account) => '${deployer.address}.${stakingContract}';
 const nftAPrincipal = (deployer: Account) => '${deployer.address}.${nftAContract}';
 
-// Admin can add NFT-A (custodial) for staking
+// Admin can add NFT-A (custodial) for staking 
 Clarinet.test({
     name: "Admin can add whitelisted collection",
     async fn(chain: Chain, accounts: Map<string, Account>) {

@@ -56,8 +56,11 @@
     ;; Claim item balance
     (claim-item (uint) (response bool uint))
 
-    ;; Update multiplier for collection
+    ;; Update collection multiplier
     (update-multiplier (uint) (response bool uint))
+
+    ;; Update staking data (callable by the FT/sip10 minting from claim)
+    ;;(update-staking-data (uint uint) (response bool uint))
   )
 )
 

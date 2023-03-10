@@ -3,7 +3,6 @@
 ;; This contract is in charge of most, but not all staking operations as decentralizes the monolith staking example
 ;; Written by Setzeus/StrataLabs
 
-(use-trait nft-trait .sip-09.nft-trait)
 (use-trait stake-helper-trait .sip-16.stake-helper)
 (impl-trait .sip-16.stake-main)
 
@@ -19,15 +18,6 @@
 ;; List of all whitelisted collections
 (define-data-var whitelisted-collections (list 100 principal) (list ))
 
-;; ;; List of custodial collections
-(define-data-var whitelist-custodial (list 50 principal) (list ))
-
-;; ;; List of non-custodial collections
-(define-data-var whitelist-noncustodial (list 50 principal) (list ))
-
-;; ;; List of principals that are whitelisted/have admin privileges
-;; (define-data-var whitelist-admins (list 10 principal) (list tx-sender))
-
 ;; @desc - Uint that represents that *max* possible stake reward per block (a multiplier of u100)
 (define-data-var max-reward-per-block uint u1000000)
 
@@ -37,16 +27,6 @@
 ;; Var for helping principals with list
 (define-data-var helper-principal principal tx-sender)
 
-;; ;; Map that defines the staking status for an NFT globally
-;; (define-map staking-data {collection: principal, item: uint} {
-;;     staker: (optional principal),
-;;     last-staked-or-claimed: uint
-;; })
-
-;; ;; Map that tracks all staked IDs in a collection (value) by user & collection & ID (key)
-;; (define-map user-stakes-by-collection {user: principal, collection: principal}
-;;   (list 10000 uint)
-;; )
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;
