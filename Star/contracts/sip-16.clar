@@ -6,15 +6,23 @@
     ;; Get whitelisted collections
     (get-whitelisted-collections () (response (list 100 principal) uint))
 
+    ;; Get max reward per block
+    (get-max-reward-per-block () (response uint uint))
+
     ;; Add team admin
     (add-team-admin (principal) (response bool uint))
 
     ;; Remove team admin
+    (remove-team-admin (principal) (response bool uint))
 
     ;; Add whitelisted collection
-    (add-whitelisted-collection (principal) (response bool uint))
+    (add-whitelisted-collection (<stake-helper>) (response bool uint))
 
     ;; Remove whitelisted collection
+    (remove-whitelisted-collection (principal) (response bool uint))
+
+    ;; Update max reward per block
+    (update-max-reward-per-block (uint) (response bool uint))
   )
 )
 
@@ -23,6 +31,9 @@
   (
     ;; Get linked NFT principal
     (get-contract () (response principal uint))
+
+    ;; Get collection multiplier
+    (get-multiplier () (response uint uint))
 
     ;; Get collection custody-status
     (get-custody-status () (response bool uint))
@@ -33,7 +44,7 @@
     ;; Get unclaimed balance
     (get-total-unclaimed (principal) (response uint uint))
 
-    ;; Get local stakes
+    ;; Get all user stakes
     (get-all-stakes (principal) (response (optional (list 1000 uint)) uint))
 
     ;; Stake item
@@ -44,6 +55,9 @@
 
     ;; Claim item balance
     (claim-item (uint) (response bool uint))
+
+    ;; Update multiplier for collection
+    (update-multiplier (uint) (response bool uint))
   )
 )
 

@@ -23,6 +23,9 @@
 ;; Constant for custodial property for reference collection (nft-a)
 (define-constant custody-status true)
 
+;; Var that tracks current collection multiplier
+(define-data-var collection-multiplier uint u1)
+
 ;; Map that tracks all IDs staked by user locally
 (define-map all-user-stakes principal (list 1000 uint))
 
@@ -43,17 +46,17 @@
     (ok nft-a-principal)
 )
 
+;; Get Collection Multiplier
+(define-read-only (get-multiplier) 
+    (ok (var-get collection-multiplier))
+)
+
 ;; Get Collection Custody Status
 (define-read-only (get-custody-status) 
     (ok custody-status)
 )
 
-;; Get Collection Custody-Status
-(define-read-only (get-collection-custody-status) 
-    (ok custody-status)
-)
-
-;; Get Local Staking Data
+;; Get Staking Data
 (define-read-only (get-staking-data (item  uint)) 
     (ok (map-get? staking-data item))
 )
@@ -133,4 +136,13 @@
 ;; @param - id:uint - id of the NFT
 (define-public (claim-item (item uint))
     (ok true)
+)
+
+;; Update Collection Multiplier
+;; @desc - function for updating the collection multiplier
+;; @param - multiplier:uint - new multiplier
+(define-public (update-multiplier (multiplier uint))
+    ;; assert multiple < 100
+    ;;(asserts! (and (< collection-multiple u101) (> collection-multiple u0)) (err u202))
+    (ok (var-set collection-multiplier multiplier))
 )

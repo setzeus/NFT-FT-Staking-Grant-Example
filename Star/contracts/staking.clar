@@ -14,7 +14,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; List of all team admins
-(define-data-var team-admins (list 10 principal) (list))
+(define-data-var team-admins (list 10 principal) (list tx-sender))
 
 ;; List of all whitelisted collections
 (define-data-var whitelisted-collections (list 100 principal) (list ))
@@ -28,14 +28,14 @@
 ;; ;; List of principals that are whitelisted/have admin privileges
 ;; (define-data-var whitelist-admins (list 10 principal) (list tx-sender))
 
-;; ;; @desc - Uint that represents that *max* possible stake reward per block (a multiplier of u100)
-;; (define-data-var max-payout-per-block uint u1000000)
+;; @desc - Uint that represents that *max* possible stake reward per block (a multiplier of u100)
+(define-data-var max-reward-per-block uint u1000000)
 
 ;; @desc - Map that keeps track of whitelisted principal (key) & corresponding multiplier (value)
 (define-map collection-multiplier principal uint)
 
-;; ;; Var for helping principals with list
-;; (define-data-var helper-principal principal tx-sender)
+;; Var for helping principals with list
+(define-data-var helper-principal principal tx-sender)
 
 ;; ;; Map that defines the staking status for an NFT globally
 ;; (define-map staking-data {collection: principal, item: uint} {
@@ -62,6 +62,11 @@
 ;; Get whitelisted collections
 (define-read-only (get-whitelisted-collections)
   (ok (var-get whitelisted-collections))
+)
+
+;; Get max reward per block
+(define-read-only (get-max-reward-per-block)
+  (ok (var-get max-reward-per-block))
 )
 
 
@@ -232,47 +237,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; @desc - Function that only an admin user can call to add a new SGC collection for staking
-;; @param - Collection (principal or collection?), Collection-Multiple (uint)
-(define-public (add-whitelisted-collection (collection-helper <stake-helper-trait>) (collection <nft-trait>) (collection-multiple uint) (custodial bool))
-  (let
-    (
-      ;;(active-whitelist-total (var-get whitelisted-collections))
-      ;;(active-whitelist-custodial (var-get whitelist-custodial))
-      ;;(active-whitelist-noncustodial (var-get whitelist-noncustodial))
-      ;;(current-admin-list (var-get team-admins))
-      ;;(caller-principal-position-in-list (index-of current-admin-list tx-sender))
-    )
-
-    ;;(asserts! (is-some (index-of (var-get whitelist-admins) tx-sender)) (err u40))
-    ;;(asserts! (is-some caller-principal-position-in-list) (err u200))
-
-    ;; assert collection not already added
-    ;;(asserts! (is-none (index-of active-whitelist-total (contract-of collection))) (err u201))
-
-    ;; assert multiple < 100
-    ;;(asserts! (and (< collection-multiple u101) (> collection-multiple u0)) (err u202))
-
-    ;; update collection-multiplier map
-    ;;(map-set collection-multiplier (contract-of collection) collection-multiple)
-
-    ;; (if custodial
-    ;;     ;; Is custodial
-    ;;     (var-set whitelist-custodial (unwrap! (as-max-len? (append active-whitelist-custodial (contract-of collection)) u50) (err u203)) )
-    ;;     ;; Is non-custodial
-    ;;     (var-set whitelist-noncustodial (unwrap! (as-max-len? (append active-whitelist-noncustodial (contract-of collection)) u50) (err u204)) )
-    ;; )
-
-    
-    ;; add new principle to whitelist
-    ;;(ok (var-set whitelisted-collections (unwrap! (as-max-len? (append active-whitelist-total (contract-of collection)) u100) (err u205)) ))
-
-  )
-)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Add Admin Address For Whitelisting ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;
+;; Add Admin Address ;;
+;;;;;;;;;;;;;;;;;;;;;;;
 ;; @desc - Function for add principals that have explicit permission to add current or future stakeable collections
 ;; @param - Principal that we're adding as whitelist, initially only admin-one has permission
 (define-public (add-team-admin (new-whitelist principal))
@@ -294,36 +261,105 @@
   )
 )
 
-;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; ;; Remove Admin Address For Whitelisting ;;
-;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; ;; @desc - Function for removing principals that have explicit permission to add current or future stakeable collections
-;; ;; @param - Principal that we're adding removing as white
-;; (define-public (remove-admin-address-for-whitelisting (remove-whitelist principal))
-;;   (let
-;;     (
-;;       (current-admin-list (var-get whitelist-admins))
-;;       (caller-principal-position-in-list (index-of current-admin-list tx-sender))
-;;       (removeable-principal-position-in-list (index-of current-admin-list remove-whitelist))
-;;     )
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Add Whitelisted Collection ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; @desc - Function that only an admin user can call to add a new SGC collection for staking
+;; @param - Collection (principal or collection?), Collection-Multiple (uint)
+(define-public (add-whitelisted-collection (collection-helper <stake-helper-trait>))
+  (let
+    (
+      (current-whitelisted-collections (var-get whitelisted-collections))
+      (collection-helper-contract (unwrap! (contract-call? collection-helper get-contract) (err u200)))
+    )
 
-;;     ;; asserts tx-sender is an existing whitelist address
-;;     (asserts! (is-some caller-principal-position-in-list) (err "err-not-admin"))
+    ;; Assert that tx-sender is a team-admin using is-some & index-of
+    (asserts! (is-some (index-of (var-get team-admins) tx-sender)) (err u201))
 
-;;     ;; asserts param principal (removeable whitelist) already exist
-;;     (asserts! (is-eq removeable-principal-position-in-list) (err "err-not-whitelisted")) ;;changed error to make sense, changed is-some to is-eq
+    ;; Assert that collection is not already whitelisted using is-none & index-of
+    (asserts! (is-none (index-of current-whitelisted-collections collection-helper-contract)) (err u202))
+    
+    ;; Add new principle to whitelist
+    (ok (var-set whitelisted-collections (unwrap! (as-max-len? (append current-whitelisted-collections collection-helper-contract) u100) (err u203))))
+  )
+)
 
-;;     ;; temporary var set to help remove param principal
-;;     (var-set helper-principal remove-whitelist)
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Remove Admin Address ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; @desc - Function for removing principals that have explicit permission to add current or future stakeable collections
+;; @param - Principal that we're adding removing as white
+(define-public (remove-whitelisted-collection (remove-whitelist principal))
+  (let
+    (
+      (current-admin-list (var-get team-admins))
+      (current-whitelisted-collections (var-get whitelisted-collections))
+      (caller-principal-position-in-list (index-of current-admin-list tx-sender))
+      (removeable-principal-position-in-list (index-of current-whitelisted-collections remove-whitelist))
+    )
 
-;;     ;; need to remove from custodial or noncustodial as well...
+    ;; asserts tx-sender is an existing whitelist address
+    (asserts! (is-some caller-principal-position-in-list) (err u500))
 
-;;     ;; filter existing whitelist address
-;;     (ok (filter is-not-removeable (var-get whitelist-admins)))
-;;   )
-;; )
+    ;; asserts param principal (removeable whitelist) already exist
+    (asserts! (is-eq removeable-principal-position-in-list) (err u501)) ;;changed error to make sense, changed is-some to is-eq
 
-;; ;; @desc - Helper function for removing a specific admin from tne admin whitelist
-;; (define-private (is-not-removeable (admin-principal principal))
-;;   (not (is-eq admin-principal (var-get helper-principal)))
-;; )
+    ;; temporary var set to help remove param principal
+    (var-set helper-principal remove-whitelist)
+
+    ;; Var-set team-admins by using filter & the is-not-removeable function to remove the param principal
+    (ok (var-set whitelisted-collections (filter is-not-removeable (var-get whitelisted-collections))))
+  )
+)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Remove Team Address ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;
+;; @desc - Function for removing principals from the team-admins list
+;; @param - Principal that we're removing from the team-admins list
+(define-public (remove-team-admin (remove-admin principal))
+  (let
+    (
+      (current-admin-list (var-get team-admins))
+      (caller-principal-position-in-list (index-of current-admin-list tx-sender))
+      (removeable-principal-position-in-list (index-of current-admin-list remove-admin))
+    )
+
+    ;; asserts tx-sender is an existing whitelist address
+    (asserts! (is-some caller-principal-position-in-list) (err u600))
+
+    ;; asserts param principal (removeable whitelist) already exist
+    (asserts! (is-some removeable-principal-position-in-list) (err u601))
+
+    ;; temporary var set to help remove param principal
+    (var-set helper-principal remove-admin)
+
+    ;; Var-set team-admins by using filter & the is-not-removeable function to remove the param principal
+    (ok (var-set team-admins (filter is-not-removeable (var-get team-admins))))
+  )
+)
+
+;; @desc - Helper function for removing a specific admin from tne admin whitelist
+(define-private (is-not-removeable (admin-principal principal))
+  (not (is-eq admin-principal (var-get helper-principal)))
+)
+
+;;;;;;;;;;;;;;;;;;;;;;;
+;; Update Max Reward ;;
+;;;;;;;;;;;;;;;;;;;;;;;
+;; @desc - Function for updating the max reward for all staked collections
+;; @param - New Max Reward (uint)
+(define-public (update-max-reward-per-block (new-max-reward uint))
+  (let
+    (
+      (current-admin-list (var-get team-admins))
+      (caller-principal-position-in-list (index-of current-admin-list tx-sender))
+    )
+
+    ;; asserts tx-sender is an existing whitelist address
+    (asserts! (is-some caller-principal-position-in-list) (err u700))
+
+    ;; Var-set max-reward
+    (ok (var-set max-reward-per-block new-max-reward))
+  )
+)

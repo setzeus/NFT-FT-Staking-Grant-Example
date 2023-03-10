@@ -307,9 +307,9 @@ Clarinet.test({
             Tx.contractCall("staking", "unstake-item", [types.principal('ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.nft-b'), types.uint(1)], deployer.address),
         ]);
 
-        console.log(chain.getAssetsMaps())
-        console.log(unstakeBlock.receipts[0].result)
-        console.log(unstakeBlock.receipts[1].result)
+        //console.log(chain.getAssetsMaps())
+        //console.log(unstakeBlock.receipts[0].result)
+        //console.log(unstakeBlock.receipts[1].result)
 
         assertEquals(chain.getAssetsMaps().assets['.ft.example-ft'][deployer.address], 80000)
         //assertEquals(chain.getAssetsMaps().assets['.nft-a.nft-a'][deployer.address], 1)
