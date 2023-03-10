@@ -128,5 +128,9 @@
 )
 
 
-;; Non-Custodial Staking
-
+;; Claim Item Balance
+;; @desc - function for claiming the balance of an NFT staked
+;; @param - id:uint - id of the NFT
+(define-public (claim-item (item uint))
+    (ok true)
+)

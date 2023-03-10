@@ -234,40 +234,41 @@
 
 ;; @desc - Function that only an admin user can call to add a new SGC collection for staking
 ;; @param - Collection (principal or collection?), Collection-Multiple (uint)
-;; (define-public (add-whitelisted-collection (collection-helper <stake-helper-trait>) (collection <nft-trait>) (collection-multiple uint) (custodial bool))
-;;   (let
-;;     (
-;;       (active-whitelist-total (var-get whitelisted-collections))
-;;       (active-whitelist-custodial (var-get whitelist-custodial))
-;;       (active-whitelist-noncustodial (var-get whitelist-noncustodial))
-;;       (current-admin-list (var-get team-admins))
-;;       (caller-principal-position-in-list (index-of current-admin-list tx-sender))
-;;     )
+(define-public (add-whitelisted-collection (collection-helper <stake-helper-trait>) (collection <nft-trait>) (collection-multiple uint) (custodial bool))
+  (let
+    (
+      ;;(active-whitelist-total (var-get whitelisted-collections))
+      ;;(active-whitelist-custodial (var-get whitelist-custodial))
+      ;;(active-whitelist-noncustodial (var-get whitelist-noncustodial))
+      ;;(current-admin-list (var-get team-admins))
+      ;;(caller-principal-position-in-list (index-of current-admin-list tx-sender))
+    )
 
-;;     ;;(asserts! (is-some (index-of (var-get whitelist-admins) tx-sender)) (err u40))
-;;     (asserts! (is-some caller-principal-position-in-list) (err u200))
+    ;;(asserts! (is-some (index-of (var-get whitelist-admins) tx-sender)) (err u40))
+    ;;(asserts! (is-some caller-principal-position-in-list) (err u200))
 
-;;     ;; assert collection not already added
-;;     (asserts! (is-none (index-of active-whitelist-total (contract-of collection))) (err u201))
+    ;; assert collection not already added
+    ;;(asserts! (is-none (index-of active-whitelist-total (contract-of collection))) (err u201))
 
-;;     ;; assert multiple < 100
-;;     (asserts! (and (< collection-multiple u101) (> collection-multiple u0)) (err u202))
+    ;; assert multiple < 100
+    ;;(asserts! (and (< collection-multiple u101) (> collection-multiple u0)) (err u202))
 
-;;     ;; update collection-multiplier map
-;;     (map-set collection-multiplier (contract-of collection) collection-multiple)
+    ;; update collection-multiplier map
+    ;;(map-set collection-multiplier (contract-of collection) collection-multiple)
 
-;;     (if custodial
-;;         ;; Is custodial
-;;         (var-set whitelist-custodial (unwrap! (as-max-len? (append active-whitelist-custodial (contract-of collection)) u50) (err u203)) )
-;;         ;; Is non-custodial
-;;         (var-set whitelist-noncustodial (unwrap! (as-max-len? (append active-whitelist-noncustodial (contract-of collection)) u50) (err u204)) )
-;;     )
+    ;; (if custodial
+    ;;     ;; Is custodial
+    ;;     (var-set whitelist-custodial (unwrap! (as-max-len? (append active-whitelist-custodial (contract-of collection)) u50) (err u203)) )
+    ;;     ;; Is non-custodial
+    ;;     (var-set whitelist-noncustodial (unwrap! (as-max-len? (append active-whitelist-noncustodial (contract-of collection)) u50) (err u204)) )
+    ;; )
 
-;;     ;; add new principle to whitelist
-;;     (ok (var-set whitelisted-collections (unwrap! (as-max-len? (append active-whitelist-total (contract-of collection)) u100) (err u205)) ))
+    
+    ;; add new principle to whitelist
+    ;;(ok (var-set whitelisted-collections (unwrap! (as-max-len? (append active-whitelist-total (contract-of collection)) u100) (err u205)) ))
 
-;;   )
-;; )
+  )
+)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Add Admin Address For Whitelisting ;;

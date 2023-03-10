@@ -12,7 +12,7 @@
     ;; Remove team admin
 
     ;; Add whitelisted collection
-    ;;(add-whitelisted-collection (principal) (response bool uint))
+    (add-whitelisted-collection (principal) (response bool uint))
 
     ;; Remove whitelisted collection
   )
@@ -42,7 +42,8 @@
     ;; Unstake item
     (unstake-item (uint) (response bool uint))
 
-    ;; Claim unclaimed balance
+    ;; Claim item balance
+    (claim-item (uint) (response bool uint))
   )
 )
 

@@ -3,7 +3,6 @@ import { Clarinet, Tx, Chain, Account, Contract, types } from 'https://deno.land
 import { assertEquals } from 'https://deno.land/std@0.90.0/testing/asserts.ts';
 
 const stakingContract = "staking";
-
 const defaultNFTContract = "sip-09";
 const defaultFTContract = "sip-10";
 const nftAContract = "nft-a";
